@@ -105,13 +105,22 @@ Quy ước:
 - Mỗi truy vấn nóng phải có index tương ứng (danh sách bắt buộc: SPEC.md 3.6 —
   gồm partial index và GIN pg_trgm), khai ngay trong `Configuration`; index
   đặc thù Postgres mà EF không tả được thì viết SQL trong migration.
+- **Extension Postgres** bật bằng migration: `citext` (email), `pg_trgm` +
+  `unaccent` (tìm user — UC-16). `unaccent()` **không IMMUTABLE** nên không
+  index trực tiếp được: tạo một wrapper `IMMUTABLE` bọc nó rồi mới index trên
+  biểu thức đó. Cùng chỗ này khai trigger chặn UPDATE/DELETE trên
+  `audit_logs` (`BEFORE UPDATE OR DELETE … RAISE EXCEPTION`) — **không** dùng
+  REVOKE, vì app chạy bằng role owner nên REVOKE không chặn được gì.
 - **Không lưu trạng thái suy được — trừ ngoại lệ SPEC chỉ định**:
   `posts.comment_count` + `posts.reaction_counts` (jsonb) là bộ đếm phi chuẩn
   hóa có chủ đích. Điều kiện đi kèm: cập nhật **cùng transaction** với bản ghi
   thật (SPEC 3.5) + job đêm đối soát (SPEC 3.7). Ngoài hai cột này, cấm thêm
   counter/trạng thái dẫn xuất mới.
-- Seed `roles` (1=User, 2=Moderator, 3=Admin) và `reason_code` trong migration,
-  idempotent; admin đầu tiên qua biến môi trường (SPEC 3.7).
+- Seed idempotent trong migration: `roles` (1=User, 2=Moderator, 3=Admin,
+  `is_system = true`), `permissions` (toàn bộ danh sách SPEC.md mục 7 — nguồn
+  là enum trong code), `role_permissions` (ma trận SPEC mục 4 là **giá trị
+  khởi tạo**, Admin sửa được sau đó), `reason_code`; admin đầu tiên qua biến
+  môi trường (SPEC 3.7).
 - Migration: `dotnet ef migrations add <Ten>` — review SQL sinh ra trước khi
   commit; backward-compatible 1 phiên bản (expand–contract). **Không**
   auto-migrate lúc app khởi động ở prod (chạy trong pipeline deploy).
@@ -155,16 +164,30 @@ DTO request:
 
 ## 4. Phân quyền
 
-Nguyên tắc: **default deny** theo ma trận SPEC.md mục 4. Bảy test TC-A01→A07
-(SPEC mục 4) là hợp đồng tối thiểu, chạy trong CI.
+Nguyên tắc: **default deny, RBAC động** theo SPEC.md mục 4. Tám test
+TC-A01→A08 (SPEC mục 4) là hợp đồng tối thiểu, chạy trong CI.
 
 - AuthN: JWT Bearer (HS256, TTL 15 phút, claims `sub`/`role`/`jti`), fallback
   policy `RequireAuthenticatedUser` → **mọi route mặc định cần token**; mở
-  public bằng `[AllowAnonymous]` (đăng ký, đăng nhập, xem nội dung public — cột
-  Guest trong ma trận).
-- AuthZ vai trò: RBAC 3 role **`User` / `Moderator` / `Admin`** bằng
-  `[Authorize(Roles = ...)]` cho route kiểm duyệt (`report.resolve`,
-  `post.hide`) và quản trị (`user.lock`, `role.assign`, `audit.read`).
+  public bằng `[AllowAnonymous]` (đăng ký, đăng nhập, quên mật khẩu, xem nội
+  dung public — cột Guest trong ma trận).
+- AuthZ: kiểm bằng **permission code**, không bằng tên role —
+  `[HasPermission("report.resolve")]` + `IAuthorizationPolicyProvider` động +
+  `AuthorizationHandler<PermissionRequirement>` ở `Common`. **Không dùng
+  `[Authorize(Roles = ...)]`** ở bất kỳ đâu: role là dữ liệu sửa được lúc chạy,
+  gắn tên role vào code là quay lại hard-code.
+- Danh sách permission code **cố định trong code** (enum, SPEC mục 7) vì mỗi mã
+  phải có chỗ kiểm; role và `role_permissions` thì **động** qua màn Admin.
+  Một user giữ đúng **một** role.
+- Nguồn quyền lúc kiểm: đọc tập permission của user từ **cache Redis**
+  (TTL 300s, key theo user), fallback DB. **Không nhét permission vào JWT** —
+  token phình và mọi thay đổi quyền phải chờ hết TTL 15 phút. Đổi role của user
+  hoặc đổi `role_permissions` → **xoá cache ngay** sau khi transaction commit,
+  không chờ TTL hết hạn (TC-A08 kiểm đúng điều này).
+- Claim `role` trong JWT chỉ để frontend render menu — server không bao giờ
+  quyết định quyền dựa trên nó.
+- Hai chốt an toàn bắt buộc: không gỡ `role.assign` khỏi role cuối cùng còn giữ
+  nó, không xoá role `is_system`, và không cho user tự đổi role của chính mình.
 - Quyền trên **bản ghi cụ thể** (`✔(own)` trong ma trận — sửa/xoá bài của mình,
   đọc hội thoại mình tham gia) kiểm **trong service**: `AssertOwner()`,
   `AssertParticipant()` — không viết policy handler cho từng resource. Đây là
@@ -225,7 +248,7 @@ Mỗi dịch vụ ngoài có đúng một adapter ở `Infra/*`:
 
 | Dịch vụ | Adapter | Dùng ở |
 |---|---|---|
-| Object storage (ảnh — pre-signed URL) | `StorageService` | `Posts`, `Users` |
+| Object storage (ảnh — pre-signed URL) | `StorageService` — **`AWSSDK.S3`**, `ForcePathStyle = true`; local MinIO, prod Cloudflare R2 (`region = auto`) | `Posts`, `Users` |
 | Email (xác minh, đặt lại mật khẩu) | `MailService` (`Infra/Mail`) | `Auth` |
 | Redis (cache, presence, SignalR backplane) | `CacheService` + `AddStackExchangeRedis` | feed cache, quan hệ bạn bè, online status |
 
@@ -264,7 +287,15 @@ make test-api           # dotnet test
 make format-api         # dotnet format --verify-no-changes
 ```
 
-`make check` = `build-api + format-api + test-api + typecheck-web + lint-web`.
-Migration mới phải kèm chạy thử `make migrate-api` trên DB local trước khi
-commit. Test tối thiểu cho phần phân quyền: TC-A01→A07 (SPEC mục 4); tiêu chí
-nghiệm thu tính năng lấy từ acceptance criteria SPEC mục 5.
+`make check` = `build-api + format-api + test-api` (+ `typecheck-web + lint-web`
+khi `socialmedia_web` đã tồn tại — trước đó tự bỏ qua).
+
+- Test tích hợp chạy trên **Postgres thật qua Testcontainers** +
+  `WebApplicationFactory<Program>` (harness dựng ở ROADMAP 0.5b), **không** dùng
+  DB dev và **không** dùng InMemory provider — global query filter, CHECK
+  constraint và index partial chỉ đúng trên Postgres.
+- Test tối thiểu cho phần phân quyền: **TC-A01→A08** (SPEC mục 4), chạy trong
+  CI (ROADMAP 0.7); tiêu chí nghiệm thu tính năng lấy từ acceptance criteria
+  SPEC mục 5.
+- Migration mới phải kèm chạy thử `make migrate-api` trên DB local trước khi
+  commit.
