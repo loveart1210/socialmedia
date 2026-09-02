@@ -17,7 +17,7 @@ SignalR hub của API; upload ảnh đi qua API rồi mới lên object storage.
 | Hiểu tổng thể, ranh giới service, hợp đồng HTTP, module | `.claude/rules/ARCHITECTURE.md` |
 | Sửa backend .NET | `.claude/rules/api.md` |
 | Sửa web Next.js | `.claude/rules/web.md` |
-| Yêu cầu nghiệp vụ (use case, ERD, tài liệu PTTK) | `docs/` |
+| Yêu cầu nghiệp vụ (use case, ERD, tài liệu PTTK) | `docs/SPEC.md` |
 
 Việc đang làm mâu thuẫn với docs → dừng lại hỏi; được duyệt thì sửa docs
 trong cùng commit với code.

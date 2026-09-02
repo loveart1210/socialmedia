@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **social_media** (79 symbols, 77 relationships, 0 execution flows).
+This project is indexed by GitNexus as **socialmedia** (171 symbols, 167 relationships, 0 execution flows).
 
 > Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
 
@@ -26,10 +26,10 @@ This project is indexed by GitNexus as **social_media** (79 symbols, 77 relation
 
 | Resource | Use for |
 | --- | --- |
-| `gitnexus://repo/social_media/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/social_media/clusters` | All functional areas |
-| `gitnexus://repo/social_media/processes` | All execution flows |
-| `gitnexus://repo/social_media/process/{name}` | Step-by-step execution trace |
+| `gitnexus://repo/socialmedia/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/socialmedia/clusters` | All functional areas |
+| `gitnexus://repo/socialmedia/processes` | All execution flows |
+| `gitnexus://repo/socialmedia/process/{name}` | Step-by-step execution trace |
 
 ## CLI
 
