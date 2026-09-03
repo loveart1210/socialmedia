@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **socialmedia** (171 symbols, 167 relationships, 0 execution flows).
+This project is indexed by GitNexus as **socialmedia** (355 symbols, 474 relationships, 3 execution flows).
 
 > Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
 
@@ -66,10 +66,29 @@ docs trong **cùng commit** với code.
 
 ## Trạng thái hiện tại
 
-Repo mới có docs + Makefile, **chưa có code**. Giai đoạn đầu chỉ làm:
-solution dotnet + database (EF Core migration) + API contract trên Swagger.
-Chưa dựng frontend, chưa viết nghiệp vụ đầy đủ — đừng tự ý scaffold
-`socialmedia_web` hay viết logic ngoài phạm vi được giao.
+**Xong Phase 0 (nền móng), chưa có nghiệp vụ.** Đang ở đầu Phase 1 — Auth + Users.
+
+Đã có:
+
+- `docker-compose.yml`: Postgres 16.15 + Redis 7 + MailHog + MinIO (bucket
+  `socialmedia-media` tạo sẵn).
+- `socialmedia_api/SocialMedia.sln` — `src/SocialMedia.Api` + `tests/SocialMedia.Api.Tests`,
+  cây `Modules/` · `Common/` · `Infra/`.
+- `Program.cs` đã chốt quy ước toàn cục: `/api/v{version}` (Asp.Versioning) ·
+  Swagger UI `/docs` chỉ Development · JWT HS256 + fallback policy default deny ·
+  `UnmappedMemberHandling = Disallow` + `JsonStringEnumConverter` · ProblemDetails
+  qua exception handler chung · `X-Request-Id` · CORS credentials · rate limit
+  policy `auth`/`content`.
+- `Infra/Database/AppDbContext` — timestamps tự gán, global query filter
+  `DeletedAt == null` cho entity `ISoftDeletable`, tên bảng/cột mặc định snake_case.
+- `Modules/Health` — `GET /api/health` (version-neutral, `[AllowAnonymous]`), kiểm
+  Postgres + Redis, 503 khi phụ thuộc hỏng.
+- Harness test tích hợp: `WebApplicationFactory<Program>` + Postgres/Redis thật qua
+  Testcontainers; **TC-A01/TC-A02** đã có test. CI GitHub Actions chạy `make check`.
+
+Chưa có: **migration nào cả** (bảng đầu tiên là Phase 1.1), module nghiệp vụ, và
+toàn bộ `socialmedia_web` (Phase 7). Đừng tự ý scaffold web hay viết logic ngoài
+phạm vi được giao.
 
 ## Lệnh
 

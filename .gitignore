@@ -1,1 +1,28 @@
 .gitnexus
+
+# ── .NET ────────────────────────────────────────────────
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+coverage*.xml
+*.received.*
+
+# ── Node / Next.js (Phase 7) ────────────────────────────
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# ── Môi trường ──────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── IDE / OS ────────────────────────────────────────────
+.idea/
+.DS_Store
+Thumbs.db

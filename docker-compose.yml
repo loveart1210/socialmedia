@@ -1,0 +1,94 @@
+# Hạ tầng local cho phát triển — CHỈ chạy qua docker compose.
+# Máy nào đã cài sẵn PostgreSQL (kể cả trong WSL) phải tắt hẳn service đó trước:
+#   sudo systemctl disable --now postgresql
+# Windows không thấy socket của WSL trong netstat nên container vẫn bind 5432
+# thành công, sau đó localhost:5432 từ Windows và từ trong WSL trỏ về HAI DB
+# khác nhau mà không báo lỗi gì.
+
+name: socialmedia
+
+services:
+  postgres:
+    # Pin cả minor để dev khớp prod (ARCHITECTURE.md mục 6).
+    image: postgres:16.15-alpine
+    container_name: socialmedia-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: socialmedia
+      POSTGRES_PASSWORD: socialmedia_dev
+      POSTGRES_DB: socialmedia
+      # Cần cho citext/pg_trgm/unaccent tạo bằng migration ở Phase 1/2.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U socialmedia -d socialmedia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: socialmedia-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailhog:
+    # SMTP giả cho dev: 1025 = SMTP, 8025 = UI (http://localhost:8025).
+    image: mailhog/mailhog:v1.0.1
+    container_name: socialmedia-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  minio:
+    # S3-compatible cho local; prod dùng Cloudflare R2 với cùng adapter AWSSDK.S3.
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: socialmedia-minio
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Tạo sẵn bucket cho ảnh; chạy một lần rồi thoát.
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    container_name: socialmedia-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/socialmedia-media &&
+      echo 'bucket socialmedia-media ready'
+      "
+    restart: "no"
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:

@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# Huỷ lần chạy cũ khi push tiếp lên cùng nhánh.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: make check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cài .NET SDK 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Cache gói NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('socialmedia_api/**/*.csproj', 'dotnet-tools.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # dotnet-ef là local tool; restore để migration chạy được trong pipeline.
+      - name: Restore local tool
+        run: make tools-restore
+
+      - name: Restore gói
+        run: dotnet restore socialmedia_api
+
+      # build-api + format-api + test-api (phần web tự bỏ qua chừng nào chưa có
+      # socialmedia_web/package.json). Test tích hợp tự dựng Postgres + Redis bằng
+      # Testcontainers — runner ubuntu-latest đã có sẵn Docker, không cần service container.
+      - name: make check
+        run: make check
+
+      - name: Nộp log test khi hỏng
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: socialmedia_api/**/TestResults/**
+          if-no-files-found: ignore

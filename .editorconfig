@@ -1,0 +1,75 @@
+# Quy ước định dạng chung cho cả monorepo.
+# `make format-api` (dotnet format --verify-no-changes) đọc file này.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csx}]
+indent_size = 4
+
+[*.{csproj,props,targets,config,nuspec,resx}]
+indent_size = 2
+
+[*.{md,markdown}]
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab
+
+[*.cs]
+# ── using ────────────────────────────────────────────────
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+csharp_using_directive_placement = outside_namespace:warning
+
+# ── namespace & brace ────────────────────────────────────
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_prefer_braces = true:suggestion
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+
+# ── var & kiểu ───────────────────────────────────────────
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
+# ── biểu thức hiện đại ───────────────────────────────────
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
+csharp_style_throw_expression = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_prefer_conditional_expression_over_assignment = true:silent
+dotnet_style_prefer_conditional_expression_over_return = true:silent
+
+# ── this. ────────────────────────────────────────────────
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+
+# ── đặt tên ──────────────────────────────────────────────
+dotnet_naming_rule.private_field_underscore.severity = suggestion
+dotnet_naming_rule.private_field_underscore.symbols = private_fields
+dotnet_naming_rule.private_field_underscore.style = underscore_camel_case
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+
+dotnet_naming_rule.types_pascal_case.severity = suggestion
+dotnet_naming_rule.types_pascal_case.symbols = types_and_members
+dotnet_naming_rule.types_pascal_case.style = pascal_case
+dotnet_naming_symbols.types_and_members.applicable_kinds = class,struct,interface,enum,property,method,event,delegate
+dotnet_naming_style.pascal_case.capitalization = pascal_case

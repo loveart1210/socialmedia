@@ -1,0 +1,14 @@
+<Project>
+
+  <!-- Thiết lập dùng chung cho mọi project trong socialmedia_api. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- `make build-api` chạy với -warnaserror; bật sẵn để build trong IDE cũng nghiêm như CI. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest</AnalysisLevel>
+  </PropertyGroup>
+
+</Project>
