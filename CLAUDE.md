@@ -54,9 +54,6 @@ Redis) và `socialmedia_web` (Next.js 15).
 
 | File | Khi nào đọc |
 |---|---|
-| `.claude/rules/ARCHITECTURE.md` | **Luôn luôn** — ranh giới service, hợp đồng HTTP, module, luật bất biến |
-| `.claude/rules/api.md` | Khi tạo/sửa bất cứ gì trong `socialmedia_api` |
-| `.claude/rules/web.md` | Khi tạo/sửa bất cứ gì trong `socialmedia_web` |
 | `docs/SPEC.md` | **Nguồn sự thật nghiệp vụ** — schema từng cột, business rule BR-*, ma trận quyền, acceptance criteria |
 | `docs/ROADMAP.md` | Trước mỗi task — biết đang ở bước nào, tiêu chí nghiệm thu của bước đó |
 
